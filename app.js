@@ -179,7 +179,16 @@ const el = {
   downloadShareButton: document.getElementById("download-share-button"),
   downloadShareButtonSecondary: document.getElementById("download-share-button-secondary"),
   map: document.getElementById("map"),
-  outlineSourceMap: document.getElementById("outline-source-map")
+  outlineSourceMap: document.getElementById("outline-source-map"),
+  guessLayout: document.getElementById("guess-layout"),
+  lostScreen: document.getElementById("lost-screen"),
+  lostCountryName: document.getElementById("lost-country-name"),
+  lostSubtext: document.getElementById("lost-subtext"),
+  lostStatsGrid: document.getElementById("lost-stats-grid"),
+  lostCountryOutline: document.getElementById("lost-country-outline"),
+  lostNewRunButton: document.getElementById("lost-new-run-button"),
+  signupConfirmPassword: document.getElementById("signup-confirm-password"),
+  sidebarOutlineGallery: document.getElementById("sidebar-outline-gallery")
 };
 
 const state = {
@@ -274,7 +283,6 @@ function setAuthMode(mode) {
 function setMessage(text, type = "") {
   el.authMessage.textContent = text;
   el.authMessage.className = `feedback${type ? ` ${type}` : ""}`;
-  el.guessFeedback.className = "feedback large-feedback";
 }
 
 function setGuessMessage(text, type = "") {
@@ -287,9 +295,30 @@ function handleSignup(event) {
   const username = normalizeName(el.signupUsername.value).replace(/\s+/g, "");
   const displayName = el.signupDisplayName.value.trim();
   const password = el.signupPassword.value;
+  const confirmPassword = el.signupConfirmPassword.value;
+
+  if (username.length < 3) {
+    setMessage("Username must be at least 3 characters.", "error");
+    return;
+  }
+
+  if (displayName.length < 2) {
+    setMessage("Display name must be at least 2 characters.", "error");
+    return;
+  }
+
+  if (password.length < 4) {
+    setMessage("Password must be at least 4 characters.", "error");
+    return;
+  }
+
+  if (password !== confirmPassword) {
+    setMessage("Passwords do not match.", "error");
+    return;
+  }
 
   if (state.users.some((user) => user.username === username)) {
-    setMessage("That username already exists on this device.", "error");
+    setMessage("That username is already taken. Try another.", "error");
     return;
   }
 
@@ -361,6 +390,9 @@ function renderGame() {
   const round = state.currentRound;
   if (!user || !round) return;
 
+  el.guessLayout.classList.remove("hidden");
+  el.lostScreen.classList.add("hidden");
+
   el.currentUserName.textContent = user.displayName;
   el.currentUserHandle.textContent = `@${user.username}`;
   el.runHeading.textContent = `Level ${round.level}`;
@@ -416,6 +448,8 @@ function renderRunStats() {
     card.innerHTML = `<span>${label}</span><strong>${value}</strong>`;
     el.runStatsGrid.appendChild(card);
   });
+
+  renderSidebarOutlines();
 }
 
 function handleGuess(event) {
@@ -482,6 +516,9 @@ function handleGuess(event) {
     return;
   }
 
+  const finalScore = user.stats.currentRunScore;
+  const countriesCleared = user.stats.latestRun.filter((e) => !e.failed).length;
+
   user.stats.incorrectGuesses += 1;
   user.stats.bestLevel = Math.max(user.stats.bestLevel, Math.max(0, round.level - 1));
   user.stats.currentRunScore = 0;
@@ -496,9 +533,9 @@ function handleGuess(event) {
   saveUsers();
   drawShareCards();
   renderRunStats();
-  setGuessMessage(`Incorrect. The answer was ${round.country}. Your run is over.`, "error");
   el.countryGuessInput.disabled = true;
   el.revealClueButton.disabled = true;
+  showLostScreen(round, finalScore, countriesCleared);
 }
 
 function handleNextRound() {
@@ -517,6 +554,49 @@ function handleRevealClue() {
   if (round.visibleClueCount >= round.clues.length) {
     setGuessMessage("Final clue revealed. This guess is worth 1 point.");
   }
+}
+
+function showLostScreen(round, finalScore, countriesCleared) {
+  el.guessLayout.classList.add("hidden");
+  el.lostScreen.classList.remove("hidden");
+
+  el.lostCountryName.textContent = `The answer was ${round.country}`;
+  el.lostSubtext.textContent = `You reached level ${round.level} and cleared ${countriesCleared} ${countriesCleared === 1 ? "country" : "countries"} this run.`;
+
+  el.lostStatsGrid.innerHTML = "";
+  [["Run score", finalScore], ["Level reached", round.level], ["This run", `${countriesCleared} cleared`]].forEach(([label, value]) => {
+    const card = document.createElement("div");
+    card.className = "stat-card";
+    card.innerHTML = `<span>${label}</span><strong>${value}</strong>`;
+    el.lostStatsGrid.appendChild(card);
+  });
+
+  if (state.mapReady) {
+    el.lostCountryOutline.innerHTML = countryOutlineSvg(round.code);
+  } else {
+    requestAnimationFrame(() => {
+      el.lostCountryOutline.innerHTML = countryOutlineSvg(round.code);
+    });
+  }
+}
+
+function renderSidebarOutlines() {
+  const user = activeUser();
+  if (!user || !el.sidebarOutlineGallery) return;
+
+  if (!state.mapReady) {
+    requestAnimationFrame(renderSidebarOutlines);
+    return;
+  }
+
+  el.sidebarOutlineGallery.innerHTML = "";
+  user.stats.countriesSolved.forEach((entry) => {
+    const item = document.createElement("div");
+    item.className = "sidebar-outline-item";
+    item.title = entry.country;
+    item.innerHTML = countryOutlineSvg(entry.code);
+    el.sidebarOutlineGallery.appendChild(item);
+  });
 }
 
 function showView(viewId) {
@@ -542,7 +622,7 @@ function renderProfile() {
 
   const countryCount = user.stats.countriesSolved.length;
   el.profileTitle.textContent = `${user.displayName}'s archive`;
-  el.profileSubtitle.textContent = `@${user.username} · local account prototype ready to evolve into public multiplayer profiles later.`;
+  el.profileSubtitle.textContent = `@${user.username} · Keep running to unlock more country outlines and climb the ranks.`;
   el.profileRank.textContent = getRank(countryCount);
   el.profileCountryCount.textContent = `${countryCount} country outline${countryCount === 1 ? "" : "s"} unlocked`;
 
@@ -589,6 +669,7 @@ function buildMaps() {
     state.outlineMetrics = {};
     applyUnlockedRegions();
     renderProfile();
+    renderSidebarOutlines();
     drawShareCards();
   });
 }
@@ -932,6 +1013,7 @@ el.logoutButton.addEventListener("click", () => {
   setAuthMode("login");
   syncApp();
 });
+el.lostNewRunButton.addEventListener("click", handleNextRound);
 el.navButtons.forEach((button) => {
   button.addEventListener("click", () => showView(button.dataset.viewTarget));
 });
