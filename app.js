@@ -175,9 +175,7 @@ const el = {
   profileStatsGrid: document.getElementById("profile-stats-grid"),
   countryOutlineGallery: document.getElementById("country-outline-gallery"),
   shareCanvas: document.getElementById("share-canvas"),
-  shareCanvasSecondary: document.getElementById("share-canvas-secondary"),
   downloadShareButton: document.getElementById("download-share-button"),
-  downloadShareButtonSecondary: document.getElementById("download-share-button-secondary"),
   map: document.getElementById("map"),
   outlineSourceMap: document.getElementById("outline-source-map"),
   guessLayout: document.getElementById("guess-layout"),
@@ -197,6 +195,7 @@ const state = {
   currentRound: null,
   map: null,
   mapReady: false,
+  mapsBuilt: false,
   autoAdvanceTimer: null,
   outlineMetrics: {}
 };
@@ -864,7 +863,7 @@ function countryOutlineSvg(code) {
 function drawShareCards() {
   const user = activeUser();
   if (!user) return;
-  [el.shareCanvas, el.shareCanvasSecondary].forEach((canvas) => drawShareCard(canvas, user));
+  drawShareCard(el.shareCanvas, user);
 }
 
 function drawShareCard(canvas, user) {
@@ -992,6 +991,11 @@ function syncApp() {
     return;
   }
 
+  if (!state.mapsBuilt) {
+    state.mapsBuilt = true;
+    buildMaps();
+  }
+
   renderGame();
   renderProfile();
   renderRunStats();
@@ -1020,11 +1024,7 @@ el.navButtons.forEach((button) => {
 el.downloadShareButton.addEventListener("click", () => {
   downloadCanvas(el.shareCanvas, "citystreak-share.png");
 });
-el.downloadShareButtonSecondary.addEventListener("click", () => {
-  downloadCanvas(el.shareCanvasSecondary, "citystreak-share.png");
-});
 
-buildMaps();
 setAuthMode("login");
 if (activeUser()) {
   startRunFromUser();

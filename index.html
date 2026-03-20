@@ -30,7 +30,6 @@
         <nav class="topbar-nav">
           <button class="nav-button is-active" data-view-target="game-view" type="button">Game</button>
           <button class="nav-button" data-view-target="profile-view" type="button">Profile</button>
-          <button class="nav-button" data-view-target="share-view" type="button">Share</button>
           <button class="ghost-button small-button" id="logout-button" type="button">Log out</button>
         </nav>
       </header>
@@ -104,22 +103,6 @@
 
       <section id="app-view" class="view hidden">
         <section id="game-view" class="page-view">
-          <section class="hero panel">
-            <div class="hero-copy">
-              <p class="eyebrow">Current run</p>
-              <h2 id="run-heading">Level 1</h2>
-              <p id="run-subtext" class="supporting-text"></p>
-              <div class="hero-actions">
-                <button id="next-round-button" class="primary-button" type="button">New run</button>
-              </div>
-            </div>
-            <div class="hero-badge">
-              <span>Signed in as</span>
-              <strong id="current-user-name"></strong>
-              <small id="current-user-handle"></small>
-            </div>
-          </section>
-
           <section class="dashboard">
             <div class="panel game-panel">
               <div class="panel-header">
@@ -162,6 +145,12 @@
                   </div>
                 </div>
                 <div class="lost-outline" id="lost-country-outline"></div>
+                <div class="lost-share">
+                  <canvas id="share-canvas" width="1200" height="675" class="share-canvas"></canvas>
+                  <div class="hero-actions top-gap">
+                    <button id="download-share-button" class="primary-button" type="button">Download share image</button>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -175,19 +164,37 @@
                 </div>
                 <div id="map" class="map-frame" aria-label="World map"></div>
               </section>
-
-              <section class="panel stats-panel">
-                <div class="panel-header compact">
-                  <div>
-                    <p class="eyebrow">Run stats</p>
-                    <h3>Current session</h3>
-                  </div>
-                </div>
-                <div id="run-stats-grid" class="stats-grid"></div>
-                <div id="sidebar-outline-gallery" class="sidebar-outline-gallery"></div>
-              </section>
             </aside>
           </section>
+
+          <div class="run-footer">
+            <section class="hero panel">
+              <div class="hero-copy">
+                <p class="eyebrow">Current run</p>
+                <h2 id="run-heading">Level 1</h2>
+                <p id="run-subtext" class="supporting-text"></p>
+                <div class="hero-actions">
+                  <button id="next-round-button" class="primary-button" type="button">New run</button>
+                </div>
+              </div>
+              <div class="hero-badge">
+                <span>Signed in as</span>
+                <strong id="current-user-name"></strong>
+                <small id="current-user-handle"></small>
+              </div>
+            </section>
+
+            <section class="panel stats-panel">
+              <div class="panel-header compact">
+                <div>
+                  <p class="eyebrow">Run stats</p>
+                  <h3>Current session</h3>
+                </div>
+              </div>
+              <div id="run-stats-grid" class="stats-grid"></div>
+              <div id="sidebar-outline-gallery" class="sidebar-outline-gallery"></div>
+            </section>
+          </div>
         </section>
 
         <section id="profile-view" class="page-view hidden">
@@ -214,19 +221,6 @@
               </div>
               <div id="profile-stats-grid" class="stats-grid"></div>
             </div>
-
-            <div class="panel share-history-panel">
-              <div class="panel-header compact">
-                <div>
-                  <p class="eyebrow">Latest run</p>
-                  <h3>Share preview</h3>
-                </div>
-              </div>
-              <canvas id="share-canvas" width="1200" height="675" class="share-canvas"></canvas>
-              <div class="hero-actions top-gap">
-                <button id="download-share-button" class="primary-button" type="button">Download share image</button>
-              </div>
-            </div>
           </section>
 
           <section class="panel full-profile-panel">
@@ -240,23 +234,6 @@
           </section>
         </section>
 
-        <section id="share-view" class="page-view hidden">
-          <section class="panel share-page-panel">
-            <div class="panel-header">
-              <div>
-                <p class="eyebrow">Share your run</p>
-                <h3>Clean export for friends or social</h3>
-              </div>
-            </div>
-            <p class="supporting-text">
-              This card uses your latest run, including countries you cleared and some of the city clues that got you there.
-            </p>
-            <canvas id="share-canvas-secondary" width="1200" height="675" class="share-canvas large-share"></canvas>
-            <div class="hero-actions top-gap">
-              <button id="download-share-button-secondary" class="primary-button" type="button">Download PNG</button>
-            </div>
-          </section>
-        </section>
       </section>
     </main>
 
