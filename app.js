@@ -1074,9 +1074,14 @@ function renderDailyPicker() {
     return;
   }
 
-  el.dailyStatus.textContent = result.failed
-    ? `${formatLongDate(state.selectedDateKey)} ended on round ${result.roundsCleared + 1} with ${result.score} points.`
-    : `${formatLongDate(state.selectedDateKey)} cleared all ${DAILY_RUN_LENGTH} rounds for ${result.score} points.`;
+  const user = currentPlayer();
+  const allScores = Object.values(user?.stats.dailyHistory || {})
+    .slice()
+    .sort((left, right) => right.dateKey.localeCompare(left.dateKey))
+    .map((entry) => `${formatLongDate(entry.dateKey)}: ${entry.score} pts`);
+
+  const firstPlayedOn = result.firstPlayedOn || state.selectedDateKey;
+  el.dailyStatus.innerHTML = `First played on ${formatLongDate(firstPlayedOn)}<br>${allScores.join("<br>")}`;
 }
 
 function recordDailyResult(user, round, payload) {
@@ -1089,7 +1094,8 @@ function recordDailyResult(user, round, payload) {
     roundsCleared: payload.roundsCleared || 0,
     completed: Boolean(payload.completed),
     failed: Boolean(payload.failed),
-    visibleClueCount: round.visibleClueCount
+    visibleClueCount: round.visibleClueCount,
+    firstPlayedOn: previous?.firstPlayedOn || todayDateKey()
   };
 
   user.stats.dailyHistory[round.dateKey] = nextEntry;
@@ -1463,7 +1469,7 @@ function startFreshRun() {
 }
 
 function startRunFromUser() {
-  setSelectedDateKey(currentPlayer()?.stats.lastPlayedDate || todayDateKey());
+  setSelectedDateKey(todayDateKey());
   openSelectedDay();
 }
 
