@@ -721,6 +721,8 @@ const COUNTRY_NAMES = [
 ];
 
 const LOCAL_PROFILE_KEY = "geostreak.localProfile.v1";
+const VISITOR_ID_KEY = "geostreak.visitorId.v1";
+const VISITOR_TRACKED_SESSION_KEY = "geostreak.visitorTracked.v1";
 
 function defaultStats() {
   return {
@@ -735,6 +737,56 @@ function defaultStats() {
     totalRoundsCleared: 0,
     lastPlayedDate: ""
   };
+}
+
+function generateVisitorId() {
+  if (window.crypto?.randomUUID) {
+    return window.crypto.randomUUID();
+  }
+
+  const randomPart = Math.random().toString(36).slice(2);
+  return `visitor_${Date.now()}_${randomPart}`;
+}
+
+function getVisitorId() {
+  try {
+    const existing = window.localStorage.getItem(VISITOR_ID_KEY);
+    if (existing) {
+      return existing;
+    }
+
+    const created = generateVisitorId();
+    window.localStorage.setItem(VISITOR_ID_KEY, created);
+    return created;
+  } catch {
+    return generateVisitorId();
+  }
+}
+
+async function trackVisitor() {
+  try {
+    if (window.sessionStorage.getItem(VISITOR_TRACKED_SESSION_KEY) === "1") {
+      return;
+    }
+
+    const visitorId = getVisitorId();
+    const response = await fetch("/api/track-visitor", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        visitorId,
+        path: window.location.pathname
+      })
+    });
+
+    if (response.ok) {
+      window.sessionStorage.setItem(VISITOR_TRACKED_SESSION_KEY, "1");
+    }
+  } catch (error) {
+    console.error(error);
+  }
 }
 
 function defaultGuest() {
@@ -2196,6 +2248,7 @@ async function bootstrapApp() {
   try {
     await loadRuntimeConfig();
     await initBackend();
+    await trackVisitor();
   } catch (error) {
     console.error(error);
     setMessage("Could not load saved local progress.", "error");
