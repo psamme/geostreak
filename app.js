@@ -1014,7 +1014,37 @@ function formatLongDate(dateKey) {
 
 function currentPuzzleResult(dateKey = state.selectedDateKey) {
   const user = currentPlayer();
-  return user?.stats.dailyHistory?.[dateKey] || null;
+  const saved = user?.stats.dailyHistory?.[dateKey] || null;
+  if (!user || dateKey !== state.selectedDateKey) {
+    return saved;
+  }
+
+  if (!saved) {
+    if (user.stats.currentPuzzleScore > 0) {
+      return {
+        dateKey,
+        score: user.stats.currentPuzzleScore,
+        highScore: user.stats.currentPuzzleScore,
+        highScoreDate: todayDateKey(),
+        firstPlayedOn: todayDateKey(),
+        completed: false,
+        failed: false,
+        roundsCleared: Math.max(0, (state.currentRound?.roundNumber || 1) - 1)
+      };
+    }
+
+    return null;
+  }
+
+  if (user.stats.currentPuzzleScore > (saved.highScore ?? saved.score ?? 0)) {
+    return {
+      ...saved,
+      highScore: user.stats.currentPuzzleScore,
+      highScoreDate: todayDateKey()
+    };
+  }
+
+  return saved;
 }
 
 function getLocalRound(dateKey = state.selectedDateKey || todayDateKey(), roundNumber = 1) {
