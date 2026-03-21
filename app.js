@@ -1860,10 +1860,10 @@ function applyUnlockedRegions() {
     regionElements(root).forEach((region) => {
       const code = (region.dataset.code || region.getAttribute("data-code") || "").toUpperCase();
       const selected = unlocked.has(code);
-      region.style.fill = selected ? "#69e3ff" : "#101824";
-      region.style.stroke = selected ? "rgba(105,227,255,0.92)" : "rgba(255,255,255,0.12)";
-      region.style.strokeWidth = selected ? "1.15" : "0.8";
-      region.style.filter = selected ? "drop-shadow(0 0 12px rgba(105,227,255,0.34))" : "none";
+      region.style.fill = selected ? "#9feeff" : "#101824";
+      region.style.stroke = selected ? "rgba(159,238,255,0.98)" : "rgba(255,255,255,0.12)";
+      region.style.strokeWidth = selected ? "1.25" : "0.8";
+      region.style.filter = selected ? "drop-shadow(0 0 14px rgba(159,238,255,0.42))" : "none";
     });
   });
 }
@@ -2031,7 +2031,6 @@ function renderCountryOutlines(countries) {
         <div class="outline-art">${countryOutlineSvg(entry.code)}</div>
         <div class="outline-meta">
           <strong>${entry.country}</strong>
-          <span>${entry.code}</span>
         </div>
       `;
       el.countryOutlineGallery.appendChild(card);
