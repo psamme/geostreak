@@ -1528,6 +1528,10 @@ function createRound(dateKey, roundNumber = 1) {
   renderGame();
 }
 
+function isShowingSavedDayResult() {
+  return Boolean(state.savedDayResult && state.currentRound);
+}
+
 function pointsForVisibleClues(round) {
   return Math.max(1, 6 - round.visibleClueCount);
 }
@@ -1658,6 +1662,17 @@ async function handleGuess(event) {
     setGuessMessage(`Correct! +${awardedPoints} point${awardedPoints === 1 ? "" : "s"}. ${country} is right.`, "success");
     updateRoundProgress(user, round);
     el.countryGuessInput.disabled = true;
+    state.currentGuess = "";
+    el.countryGuessInput.value = "";
+
+    if (round.roundNumber >= DAILY_RUN_LENGTH) {
+      state.savedDayResult = {
+        type: "win",
+        finalScore: user.stats.currentPuzzleScore,
+        roundsCleared: DAILY_RUN_LENGTH
+      };
+    }
+
     clearTimeout(state.autoAdvanceTimer);
     state.autoAdvanceTimer = window.setTimeout(() => {
       const liveUser = currentPlayer();
@@ -1715,6 +1730,13 @@ async function handleGuess(event) {
   const dryTag = sameRegion ? " You're in the right region..." : gettable ? " That was gettable." : "";
   setGuessMessage(`Wrong. The daily run ends on round ${round.roundNumber}.${dryTag}`, "error");
   el.countryGuessInput.disabled = true;
+  state.currentGuess = "";
+  el.countryGuessInput.value = "";
+  state.savedDayResult = {
+    type: "lost",
+    finalScore,
+    roundsCleared
+  };
   clearTimeout(state.autoAdvanceTimer);
   state.autoAdvanceTimer = window.setTimeout(() => {
     showLostScreen({ ...round, country, code }, finalScore, roundsCleared);
@@ -1741,9 +1763,13 @@ function showSavedDayResult(dateKey = state.selectedDateKey) {
   const round = {
     ...baseRound,
     country: result.country || baseRound.country,
-    code: result.code || baseRound.code
+    code: result.code || baseRound.code,
+    answered: true,
+    visibleClueCount: baseRound.clues.length
   };
   state.currentRound = round;
+  state.currentGuess = "";
+  el.countryGuessInput.value = "";
 
   if (result.completed) {
     state.savedDayResult = {
@@ -1889,14 +1915,12 @@ function showView(viewId) {
     });
   }
 
-  if (viewId === "game-view" && state.savedDayResult && state.currentRound) {
-    requestAnimationFrame(() => {
-      if (state.savedDayResult?.type === "win") {
-        showWinScreen(state.currentRound, state.savedDayResult.finalScore);
-      } else {
-        showLostScreen(state.currentRound, state.savedDayResult.finalScore, state.savedDayResult.roundsCleared);
-      }
-    });
+  if (viewId === "game-view" && isShowingSavedDayResult()) {
+    if (state.savedDayResult.type === "win") {
+      showWinScreen(state.currentRound, state.savedDayResult.finalScore);
+    } else {
+      showLostScreen(state.currentRound, state.savedDayResult.finalScore, state.savedDayResult.roundsCleared);
+    }
   }
 }
 
@@ -2349,19 +2373,21 @@ function syncApp() {
     return;
   }
 
-  renderGame();
   renderProfile();
   renderRunStats();
   applyUnlockedRegions();
   drawShareCards();
 
-  if (state.savedDayResult && state.currentRound) {
+  if (isShowingSavedDayResult()) {
     if (state.savedDayResult.type === "win") {
       showWinScreen(state.currentRound, state.savedDayResult.finalScore);
     } else {
       showLostScreen(state.currentRound, state.savedDayResult.finalScore, state.savedDayResult.roundsCleared);
     }
+    return;
   }
+
+  renderGame();
 }
 
 el.showLoginButton?.addEventListener("click", () => setAuthMode("login"));
