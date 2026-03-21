@@ -1803,9 +1803,11 @@ function handleRevealClue() {
 }
 
 function showLostScreen(round, finalScore, roundsCleared) {
+  state.currentGuess = "";
   el.guessLayout.classList.add("hidden");
   el.lostScreen.classList.remove("hidden");
   el.winScreen.classList.add("hidden");
+  el.countryGuessInput.value = "";
 
   el.lostCountryName.textContent = `The answer was ${round.country}`;
   el.lostSubtext.textContent = `You scored ${finalScore} on ${formatLongDate(round.dateKey)}. Replay the whole day anytime.`;
@@ -1828,9 +1830,11 @@ function showLostScreen(round, finalScore, roundsCleared) {
 }
 
 function showWinScreen(round, finalScore) {
+  state.currentGuess = "";
   el.guessLayout.classList.add("hidden");
   el.lostScreen.classList.add("hidden");
   el.winScreen.classList.remove("hidden");
+  el.countryGuessInput.value = "";
 
   el.winHeading.textContent = `${formatLongDate(round.dateKey)} cleared`;
   el.winSubtext.textContent = `You scored ${finalScore} on this daily run. Replay it anytime.`;
@@ -1882,6 +1886,16 @@ function showView(viewId) {
   if (viewId === "profile-view") {
     requestAnimationFrame(() => {
       ensureProfileMap();
+    });
+  }
+
+  if (viewId === "game-view" && state.savedDayResult && state.currentRound) {
+    requestAnimationFrame(() => {
+      if (state.savedDayResult?.type === "win") {
+        showWinScreen(state.currentRound, state.savedDayResult.finalScore);
+      } else {
+        showLostScreen(state.currentRound, state.savedDayResult.finalScore, state.savedDayResult.roundsCleared);
+      }
     });
   }
 }
