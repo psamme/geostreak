@@ -961,10 +961,21 @@ function parseDateKey(dateKey) {
   return new Date(year, month - 1, day);
 }
 
+function browserTimeZone() {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+}
+
 function formatDateKey(date) {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: browserTimeZone(),
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(date);
+
+  const year = parts.find((part) => part.type === "year")?.value || "0000";
+  const month = parts.find((part) => part.type === "month")?.value || "01";
+  const day = parts.find((part) => part.type === "day")?.value || "01";
   return `${year}-${month}-${day}`;
 }
 
@@ -993,6 +1004,7 @@ function availableDateKeys() {
 
 function formatLongDate(dateKey) {
   return parseDateKey(dateKey).toLocaleDateString(undefined, {
+    timeZone: browserTimeZone(),
     weekday: "long",
     month: "long",
     day: "numeric",
@@ -1075,31 +1087,32 @@ function renderDailyPicker() {
   }
 
   const user = currentPlayer();
-  const bestEntry = Object.values(user?.stats.dailyHistory || {})
-    .slice()
-    .sort((left, right) => {
-      if (right.score !== left.score) return right.score - left.score;
-      return left.dateKey.localeCompare(right.dateKey);
-    })[0];
-
   const firstPlayedOn = result.firstPlayedOn || state.selectedDateKey;
   el.dailyStatus.innerHTML = `First played on ${formatLongDate(firstPlayedOn)}${
-    bestEntry ? `<br>High Score: ${formatLongDate(bestEntry.dateKey)}: ${bestEntry.score} pts` : ""
+    typeof result.highScore === "number"
+      ? `<br>High Score: ${formatLongDate(result.highScoreDate || result.dateKey)}: ${result.highScore} pts`
+      : ""
   }`;
 }
 
 function recordDailyResult(user, round, payload) {
   const previous = user.stats.dailyHistory[round.dateKey];
+  const nextScore = payload.score || 0;
+  const previousHighScore = typeof previous?.highScore === "number" ? previous.highScore : -1;
+  const highScore = Math.max(previousHighScore, nextScore);
+  const highScoreDate = highScore > previousHighScore ? todayDateKey() : previous?.highScoreDate || todayDateKey();
   const nextEntry = {
     dateKey: round.dateKey,
     country: payload.country,
     code: payload.code,
-    score: payload.score || 0,
+    score: nextScore,
     roundsCleared: payload.roundsCleared || 0,
     completed: Boolean(payload.completed),
     failed: Boolean(payload.failed),
     visibleClueCount: round.visibleClueCount,
-    firstPlayedOn: previous?.firstPlayedOn || todayDateKey()
+    firstPlayedOn: previous?.firstPlayedOn || todayDateKey(),
+    highScore,
+    highScoreDate
   };
 
   user.stats.dailyHistory[round.dateKey] = nextEntry;
@@ -1568,6 +1581,12 @@ async function handleGuess(event) {
   const guess = canonicalCountry(el.countryGuessInput.value);
   const guessCountry = COUNTRY_NAMES.find((country) => canonicalCountry(country) === guess) || "";
   hideCountrySuggestions();
+
+   if (!guessCountry) {
+    setGuessMessage("Please enter a valid country.", "error");
+    el.countryGuessInput.focus();
+    return;
+  }
 
   const result = {
     correct: guess === round.country,
