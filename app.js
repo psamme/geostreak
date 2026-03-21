@@ -1569,7 +1569,7 @@ function mapOptions() {
     map: "world",
     zoomButtons: false,
     backgroundColor: "transparent",
-    regionsSelectable: true,
+    regionsSelectable: false,
     regionStyle: {
       initial: {
         fill: LOCKED_REGION_FILL,

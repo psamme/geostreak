@@ -798,6 +798,12 @@ h3 {
   height: 300px;
 }
 
+.profile-map-panel .map-frame,
+.profile-map-panel .map-frame .jsvmap-container,
+.profile-map-panel .map-frame .jsvmap-region {
+  pointer-events: none;
+}
+
 .game-map-dock {
   width: 100%;
   pointer-events: none;
