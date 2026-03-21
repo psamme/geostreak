@@ -723,6 +723,8 @@ const COUNTRY_NAMES = [
 const LOCAL_PROFILE_KEY = "geostreak.localProfile.v1";
 const VISITOR_ID_KEY = "geostreak.visitorId.v1";
 const VISITOR_TRACKED_SESSION_KEY = "geostreak.visitorTracked.v1";
+const VISITOR_TRACKED_DATE_KEY = "geostreak.visitorTrackedDate.v1";
+const VISITOR_COOKIE_KEY = "geostreak_visitor_id";
 
 function defaultStats() {
   return {
@@ -748,24 +750,59 @@ function generateVisitorId() {
   return `visitor_${Date.now()}_${randomPart}`;
 }
 
+function readCookie(name) {
+  const prefix = `${name}=`;
+  const match = document.cookie
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(prefix));
+
+  return match ? decodeURIComponent(match.slice(prefix.length)) : "";
+}
+
+function writeCookie(name, value, maxAgeSeconds = 60 * 60 * 24 * 365 * 5) {
+  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAgeSeconds}; SameSite=Lax`;
+}
+
 function getVisitorId() {
   try {
     const existing = window.localStorage.getItem(VISITOR_ID_KEY);
     if (existing) {
+      writeCookie(VISITOR_COOKIE_KEY, existing);
       return existing;
+    }
+
+    const cookieValue = readCookie(VISITOR_COOKIE_KEY);
+    if (cookieValue) {
+      window.localStorage.setItem(VISITOR_ID_KEY, cookieValue);
+      return cookieValue;
     }
 
     const created = generateVisitorId();
     window.localStorage.setItem(VISITOR_ID_KEY, created);
+    writeCookie(VISITOR_COOKIE_KEY, created);
     return created;
   } catch {
-    return generateVisitorId();
+    const cookieValue = readCookie(VISITOR_COOKIE_KEY);
+    if (cookieValue) {
+      return cookieValue;
+    }
+
+    const created = generateVisitorId();
+    writeCookie(VISITOR_COOKIE_KEY, created);
+    return created;
   }
 }
 
 async function trackVisitor() {
   try {
+    const today = todayDateKey();
     if (window.sessionStorage.getItem(VISITOR_TRACKED_SESSION_KEY) === "1") {
+      return;
+    }
+
+    if (window.localStorage.getItem(VISITOR_TRACKED_DATE_KEY) === today) {
+      window.sessionStorage.setItem(VISITOR_TRACKED_SESSION_KEY, "1");
       return;
     }
 
@@ -783,6 +820,7 @@ async function trackVisitor() {
 
     if (response.ok) {
       window.sessionStorage.setItem(VISITOR_TRACKED_SESSION_KEY, "1");
+      window.localStorage.setItem(VISITOR_TRACKED_DATE_KEY, today);
     }
   } catch (error) {
     console.error(error);
