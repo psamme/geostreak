@@ -1855,11 +1855,10 @@ function applyUnlockedRegions() {
   const user = activeUser();
   if (!state.mapReady || !user) return;
 
-  const unlocked = new Set(user.stats.countriesSolved.map((entry) => entry.code.toUpperCase()));
+  const unlockedCodes = user.stats.countriesSolved.map((entry) => entry.code.toUpperCase());
   allMapRoots().forEach((root) => {
     regionElements(root).forEach((region) => {
-      const code = (region.dataset.code || region.getAttribute("data-code") || "").toUpperCase();
-      const selected = unlocked.has(code);
+      const selected = unlockedCodes.some((code) => matchRegionCode(region, code));
       region.style.fill = selected ? "#9feeff" : "#101824";
       region.style.stroke = selected ? "rgba(159,238,255,0.98)" : "rgba(255,255,255,0.12)";
       region.style.strokeWidth = selected ? "1.25" : "0.8";
@@ -2028,10 +2027,11 @@ function renderCountryOutlines(countries) {
       const card = document.createElement("article");
       card.className = "outline-card";
       card.innerHTML = `
-        <div class="outline-art">${countryOutlineSvg(entry.code)}</div>
         <div class="outline-meta">
           <strong>${entry.country}</strong>
+          <span>Correct guess</span>
         </div>
+        <div class="outline-art">${countryOutlineSvg(entry.code)}</div>
       `;
       el.countryOutlineGallery.appendChild(card);
     });

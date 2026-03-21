@@ -92,8 +92,13 @@ async function upsertVisitor(visitor) {
 }
 
 async function countVisitors() {
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/${VISITORS_TABLE}?select=visitor_id`, {
-    method: "HEAD",
+  const search = new URLSearchParams({
+    select: "visitor_id",
+    limit: "1"
+  });
+
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/${VISITORS_TABLE}?${search.toString()}`, {
+    method: "GET",
     headers: {
       apikey: SUPABASE_SERVICE_ROLE_KEY,
       Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
@@ -106,7 +111,10 @@ async function countVisitors() {
     throw new Error(`Supabase count failed: ${response.status} ${text}`);
   }
 
-  return Number(response.headers.get("content-range")?.split("/")?.[1] || 0);
+  await response.text();
+  const contentRange = response.headers.get("content-range") || "";
+  const total = Number(contentRange.split("/")?.[1] || 0);
+  return Number.isFinite(total) ? total : 0;
 }
 
 module.exports = {
