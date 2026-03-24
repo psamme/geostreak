@@ -463,7 +463,6 @@ const el = {
   map: document.getElementById("map"),
   gameMap: document.getElementById("game-map"),
   outlineSourceMap: document.getElementById("outline-source-map"),
-  outlineDebugMap: document.getElementById("outline-debug-map"),
   guessLayout: document.getElementById("guess-layout"),
   lostScreen: document.getElementById("lost-screen"),
   winScreen: document.getElementById("win-screen"),
@@ -492,7 +491,6 @@ const state = {
   currentGuess: "",
   profileMap: null,
   gameMap: null,
-  outlineDebugMap: null,
   mapReady: false,
   mapsBuilt: false,
   autoAdvanceTimer: null,
@@ -567,7 +565,7 @@ function syncAchievedCountries(player = currentPlayer()) {
   const solvedCountries = normalizedSolvedCountries(player?.stats?.countriesSolved);
   const nextCountries = solvedCountries.map((entry) => ({
     ...entry,
-    polygon: resolveCountryPathData(entry.code)
+    polygon: getLocalCountryOutlinePath(entry.code)
   }));
 
   state.achievedCountries = nextCountries;
@@ -576,6 +574,11 @@ function syncAchievedCountries(player = currentPlayer()) {
   }
 
   return nextCountries;
+}
+
+function getLocalCountryOutlinePath(code) {
+  const outlines = window.COUNTRY_OUTLINES || {};
+  return outlines[code.toUpperCase()]?.path || "";
 }
 
 function parseDateKey(dateKey) {
@@ -1653,21 +1656,8 @@ function buildGameMap() {
   });
 }
 
-function buildOutlineDebugMap() {
-  if (!el.outlineDebugMap) return;
-  el.outlineDebugMap.innerHTML = "";
-  state.outlineDebugMap = new jsVectorMap({
-    selector: "#outline-debug-map",
-    map: "world",
-    zoomButtons: false,
-    backgroundColor: "transparent",
-    regionsSelectable: false
-  });
-}
-
 function buildMaps() {
   buildGameMap();
-  buildOutlineDebugMap();
   if (!el.profileView?.classList.contains("hidden")) {
     buildProfileMap();
   }
@@ -1750,11 +1740,11 @@ function findRenderedRegion(code, root = null) {
 }
 
 function allMapRoots() {
-  return [el.map, el.gameMap, el.outlineDebugMap].filter(Boolean);
+  return [el.map, el.gameMap].filter(Boolean);
 }
 
 function allMapInstances() {
-  return [state.profileMap, state.gameMap, state.outlineDebugMap].filter(Boolean);
+  return [state.profileMap, state.gameMap].filter(Boolean);
 }
 
 function paintRegion(region, unlocked) {
@@ -1845,38 +1835,6 @@ function focusGameMapOnCountry(code) {
   }, 1350);
 }
 
-function getWorldPathRecord(code) {
-  const worldMapData =
-    (typeof jsVectorMap !== "undefined" && jsVectorMap.maps && jsVectorMap.maps.world) || null;
-  if (!worldMapData || !worldMapData.paths) {
-    return null;
-  }
-
-  return worldMapData.paths[code.toUpperCase()] || null;
-}
-
-function getWorldPathString(code) {
-  const record = getWorldPathRecord(code);
-  if (!record) {
-    return "";
-  }
-
-  if (typeof record === "string") {
-    return record;
-  }
-
-  return record.path || "";
-}
-
-function findRegionPathData(code) {
-  const renderedRegion = findRenderedRegion(code);
-  return renderedRegion?.getAttribute("d") || "";
-}
-
-function resolveCountryPathData(code) {
-  return findRegionPathData(code) || getWorldPathString(code);
-}
-
 function hasUsableOutlineBox(box) {
   return Boolean(
     box &&
@@ -1917,7 +1875,7 @@ function measureCountryPath(code) {
     }
   }
 
-  const pathData = resolveCountryPathData(upperCode);
+  const pathData = getLocalCountryOutlinePath(upperCode);
   if (!pathData) {
     return null;
   }
@@ -1961,7 +1919,6 @@ function renderCountryOutlines() {
 
   const countries = state.achievedCountries.slice();
   el.countryOutlineGallery.innerHTML = "";
-  renderOutlinePreviewCard();
   if (!countries.length) {
     const empty = document.createElement("div");
     empty.className = "stat-card";
@@ -1999,28 +1956,14 @@ function renderCountryOutlines() {
   }
 }
 
-function renderOutlinePreviewCard() {
-  const preview = document.createElement("article");
-  preview.className = "outline-card outline-card-preview";
-  const previewSvg = countryOutlineSvg("MR");
-  preview.innerHTML = `
-    <div class="outline-meta">
-      <strong>Outline preview</strong>
-      <span>Mauritania test render</span>
-    </div>
-    <div class="outline-art outline-art-preview">${previewSvg || "<span class=\"outline-preview-fallback\">Outline unavailable</span>"}</div>
-  `;
-  el.countryOutlineGallery.appendChild(preview);
-}
-
 function countryOutlineSvg(entryOrCode) {
   const entry =
     typeof entryOrCode === "string"
-      ? { code: entryOrCode.toUpperCase(), polygon: resolveCountryPathData(entryOrCode) }
+      ? { code: entryOrCode.toUpperCase(), polygon: getLocalCountryOutlinePath(entryOrCode) }
       : {
           ...entryOrCode,
           code: (entryOrCode?.code || "").toUpperCase(),
-          polygon: entryOrCode?.polygon || resolveCountryPathData(entryOrCode?.code || "")
+          polygon: entryOrCode?.polygon || getLocalCountryOutlinePath(entryOrCode?.code || "")
         };
 
   if (!entry.code || !entry.polygon) {
