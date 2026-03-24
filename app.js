@@ -1937,6 +1937,7 @@ function renderCountryOutlines() {
 
   const countries = state.achievedCountries.slice();
   el.countryOutlineGallery.innerHTML = "";
+  renderOutlinePreviewCard();
   if (!countries.length) {
     const empty = document.createElement("div");
     empty.className = "stat-card";
@@ -1972,6 +1973,20 @@ function renderCountryOutlines() {
       renderCountryOutlines();
     }, 120);
   }
+}
+
+function renderOutlinePreviewCard() {
+  const preview = document.createElement("article");
+  preview.className = "outline-card outline-card-preview";
+  const previewSvg = countryOutlineSvg("MR");
+  preview.innerHTML = `
+    <div class="outline-meta">
+      <strong>Outline preview</strong>
+      <span>Mauritania test render</span>
+    </div>
+    <div class="outline-art outline-art-preview">${previewSvg || "<span class=\"outline-preview-fallback\">Outline unavailable</span>"}</div>
+  `;
+  el.countryOutlineGallery.appendChild(preview);
 }
 
 function countryOutlineSvg(entryOrCode) {
