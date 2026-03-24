@@ -565,7 +565,8 @@ function syncAchievedCountries(player = currentPlayer()) {
   const solvedCountries = normalizedSolvedCountries(player?.stats?.countriesSolved);
   const nextCountries = solvedCountries.map((entry) => ({
     ...entry,
-    polygon: getLocalCountryOutlinePath(entry.code)
+    polygon: getLocalCountryOutline(entry.code)?.path || "",
+    box: getLocalCountryOutline(entry.code)?.box || null
   }));
 
   state.achievedCountries = nextCountries;
@@ -576,9 +577,9 @@ function syncAchievedCountries(player = currentPlayer()) {
   return nextCountries;
 }
 
-function getLocalCountryOutlinePath(code) {
+function getLocalCountryOutline(code) {
   const outlines = window.COUNTRY_OUTLINES || {};
-  return outlines[code.toUpperCase()]?.path || "";
+  return outlines[code.toUpperCase()] || null;
 }
 
 function parseDateKey(dateKey) {
@@ -1853,6 +1854,16 @@ function measureCountryPath(code) {
     return state.outlineMetrics[upperCode];
   }
 
+  const localOutline = getLocalCountryOutline(upperCode);
+  if (localOutline?.path && hasUsableOutlineBox(localOutline.box)) {
+    const metrics = {
+      pathData: localOutline.path,
+      box: localOutline.box
+    };
+    state.outlineMetrics[upperCode] = metrics;
+    return metrics;
+  }
+
   const renderedRegion = findRenderedRegion(upperCode);
   if (renderedRegion && typeof renderedRegion.getBBox === "function") {
     const renderedPath = renderedRegion.getAttribute("d");
@@ -1875,7 +1886,7 @@ function measureCountryPath(code) {
     }
   }
 
-  const pathData = getLocalCountryOutlinePath(upperCode);
+  const pathData = localOutline?.path || "";
   if (!pathData) {
     return null;
   }
@@ -1959,11 +1970,16 @@ function renderCountryOutlines() {
 function countryOutlineSvg(entryOrCode) {
   const entry =
     typeof entryOrCode === "string"
-      ? { code: entryOrCode.toUpperCase(), polygon: getLocalCountryOutlinePath(entryOrCode) }
+      ? {
+          code: entryOrCode.toUpperCase(),
+          polygon: getLocalCountryOutline(entryOrCode)?.path || "",
+          box: getLocalCountryOutline(entryOrCode)?.box || null
+        }
       : {
           ...entryOrCode,
           code: (entryOrCode?.code || "").toUpperCase(),
-          polygon: entryOrCode?.polygon || getLocalCountryOutlinePath(entryOrCode?.code || "")
+          polygon: entryOrCode?.polygon || getLocalCountryOutline(entryOrCode?.code || "")?.path || "",
+          box: entryOrCode?.box || getLocalCountryOutline(entryOrCode?.code || "")?.box || null
         };
 
   if (!entry.code || !entry.polygon) {
