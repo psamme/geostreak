@@ -1358,6 +1358,7 @@ function renderGame() {
   const round = state.currentRound;
   if (!user || !round) return;
   const totalClues = round.totalClueCount || round.clues.length;
+  const gameMapSvg = el.gameMap?.querySelector("svg");
 
   el.guessLayout.classList.remove("hidden");
   el.lostScreen.classList.add("hidden");
@@ -1365,10 +1366,16 @@ function renderGame() {
 
   el.runHeading.textContent = `Daily Run #${round.puzzleNumber} · ${formatLongDate(round.dateKey)}`;
   el.runSubtext.innerHTML = `Each day has ${DAILY_RUN_LENGTH} rounds. Guess early for more points.<br />Use the menu to revisit any published day.`;
-  el.scorePill.textContent = `Score ${user.stats.currentPuzzleScore}`;
   el.nextRoundButton.textContent = "Jump to today";
   el.countryGuessInput.value = state.currentGuess;
   el.countryGuessInput.disabled = false;
+  clearTimeout(state.mapFocusTimer);
+  el.gameMap?.classList.remove("is-focusing");
+  regionElements(el.gameMap).forEach((entry) => entry.classList.remove("focus-target"));
+  if (gameMapSvg) {
+    gameMapSvg.style.transform = "";
+    gameMapSvg.style.transformOrigin = "";
+  }
   renderDailyPicker();
   renderCountrySuggestions();
   setGuessMessage(`Current guess value: ${pointsForVisibleClues(round)} point${pointsForVisibleClues(round) === 1 ? "" : "s"}.`);
