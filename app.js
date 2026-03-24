@@ -458,6 +458,7 @@ const el = {
   dailySelect: document.getElementById("daily-select"),
   dailyStatus: document.getElementById("daily-status"),
   runStatsGrid: document.getElementById("run-stats-grid"),
+  profileStatsGrid: document.getElementById("profile-stats-grid"),
   countryOutlineGallery: document.getElementById("country-outline-gallery"),
   shareCanvas: document.getElementById("share-canvas"),
   map: document.getElementById("map"),
@@ -1612,7 +1613,53 @@ function renderProfile() {
   if (!user) return;
 
   syncAchievedCountries(user);
+  renderProfileStats(user);
   renderCountryOutlines();
+}
+
+function profileSummary(user) {
+  const historyEntries = Object.values(user.stats.dailyHistory || {});
+  const topEntry = historyEntries.reduce((best, entry) => {
+    const entryScore = typeof entry?.highScore === "number" ? entry.highScore : entry?.score || 0;
+    const bestScore = typeof best?.highScore === "number" ? best.highScore : best?.score || 0;
+    return entryScore > bestScore ? entry : best;
+  }, null);
+
+  const highestScore = typeof topEntry?.highScore === "number" ? topEntry.highScore : user.stats.bestScore || 0;
+  const highestScoreDate =
+    topEntry?.highScoreDate || topEntry?.dateKey || (highestScore > 0 ? user.stats.lastPlayedDate || todayDateKey() : "");
+  const totalGuesses = (user.stats.correctGuesses || 0) + (user.stats.incorrectGuesses || 0);
+  const totalPoints = historyEntries.reduce((sum, entry) => {
+    const entryScore = typeof entry?.highScore === "number" ? entry.highScore : entry?.score || 0;
+    return sum + entryScore;
+  }, 0);
+
+  return {
+    highestScore,
+    highestScoreDate,
+    totalGuesses,
+    totalPoints
+  };
+}
+
+function renderProfileStats(user) {
+  if (!el.profileStatsGrid) return;
+
+  const summary = profileSummary(user);
+  const stats = [
+    ["High score", summary.highestScore],
+    ["High score date", summary.highestScoreDate ? formatLongDate(summary.highestScoreDate) : "No games yet"],
+    ["Total guesses", summary.totalGuesses],
+    ["Total points", summary.totalPoints]
+  ];
+
+  el.profileStatsGrid.innerHTML = "";
+  stats.forEach(([label, value]) => {
+    const card = document.createElement("div");
+    card.className = "stat-card";
+    card.innerHTML = `<span>${label}</span><strong>${value}</strong>`;
+    el.profileStatsGrid.appendChild(card);
+  });
 }
 
 function mapOptions() {
@@ -1950,11 +1997,10 @@ function renderCountryOutlines() {
       const card = document.createElement("article");
       card.className = "outline-card";
       card.innerHTML = `
+        <div class="outline-art">${outlineSvg}</div>
         <div class="outline-meta">
           <strong>${entry.country}</strong>
-          <span>Correct guess</span>
         </div>
-        <div class="outline-art">${outlineSvg}</div>
       `;
       el.countryOutlineGallery.appendChild(card);
     });
